@@ -1,29 +1,37 @@
-const fetch = require('node-fetch');  // Or any other HTTP client library like axios
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
+const path = require('path');
 
-module.exports = async (req, res) => {
-  const { videoId } = req.query;  // Get the videoId from the query string
+const app = express();
+const port = 3000;
+
+// Enable CORS for all origins
+app.use(cors());
+
+// Endpoint to fetch YouTube thumbnail and return it
+app.get('/thumbnail', async (req, res) => {
+  const videoId = req.query.videoId; // Get video ID from query parameter
 
   if (!videoId) {
-    return res.status(400).json({ error: 'Video ID is required' });
+    return res.status(400).json({ error: 'videoId is required' });
   }
-
-  const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
 
   try {
-    // Fetch the thumbnail image from YouTube
-    const response = await fetch(thumbnailUrl);
+    const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
 
-    if (!response.ok) {
-      return res.status(500).json({ error: 'Failed to fetch thumbnail' });
-    }
+    // Fetch the image from the YouTube thumbnail URL
+    const response = await axios.get(thumbnailUrl, { responseType: 'arraybuffer' });
 
-    // Set CORS headers to allow cross-origin requests from your extension (or any domain)
-    res.setHeader('Access-Control-Allow-Origin', '*');  // You can replace '*' with specific domains if needed
-    res.setHeader('Content-Type', 'image/jpeg');
-
-    // Pipe the response to the client (send the image)
-    response.body.pipe(res);
+    // Set the correct content type for the image
+    res.set('Content-Type', 'image/jpeg');
+    res.send(response.data); // Send the image data back to the client
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch thumbnail' });
   }
-};
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Proxy server running at http://localhost:${port}`);
+});
